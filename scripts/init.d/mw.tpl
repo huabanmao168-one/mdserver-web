@@ -381,11 +381,9 @@ mw_install(){
         exit 0
     fi
 
-    mw_common_proxy
-    echo "bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/master/scripts/install.sh")"
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/master/scripts/update.sh")
+    bash "$PANEL_DIR/scripts/update.sh" || return $?
     mw_clean_lib
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/master/scripts/install.sh")
+    bash "$PANEL_DIR/scripts/install.sh"
 }
 
 mw_update()
@@ -395,9 +393,7 @@ mw_update()
         exit 0
     fi
 
-    mw_common_proxy
-    echo "bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/master/scripts/update.sh")"
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/master/scripts/update.sh")
+    bash "$PANEL_DIR/scripts/update.sh"
 }
 
 mw_update_dev()
@@ -407,10 +403,8 @@ mw_update_dev()
         exit 0
     fi
 
-    mw_common_proxy
-    echo "bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")"
     mw_clean_lib
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")
+    bash "$PANEL_DIR/scripts/update.sh"
     cd ${PANEL_DIR}
 }
 
@@ -421,9 +415,7 @@ mw_dev()
         exit 0
     fi
 
-    mw_common_proxy
-    echo "bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")"
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")
+    bash "$PANEL_DIR/scripts/update.sh"
     cd ${PANEL_DIR}
 }
 
@@ -433,9 +425,7 @@ mw_update_venv()
     rm -rf ${PANEL_DIR}/lib64
     rm -rf ${PANEL_DIR}/lib
 
-    mw_common_proxy
-    echo "bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")"
-    bash <(curl -fsSL "${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh")
+    bash "$PANEL_DIR/scripts/update.sh"
     
     cd ${PANEL_DIR}
 }

@@ -41,7 +41,15 @@ else
 fi
 
 if [ "${action}" = "upgrade" ];then
-	sh -x $curPath/versions/$2/install.sh $1
+	sh -x $curPath/versions/$2/install.sh $1 || exit $?
+    if [ "$VERSION" = "1.31.9" ]; then
+        "$serverPath/openresty/bin/openresty" -t || exit $?
+        case "$sysName" in
+            Darwin) "$serverPath/openresty/init.d/openresty" restart || exit $? ;;
+            FreeBSD) service openresty restart || exit $? ;;
+            *) systemctl restart openresty || exit $? ;;
+        esac
+    fi
 	
 	echo "${VERSION}" > $serverPath/openresty/version.pl
 
@@ -75,7 +83,7 @@ if [ "${action}" = "uninstall" ];then
 	rm -rf $serverPath/openresty
 fi
 
-sh -x $curPath/versions/$2/install.sh $1
+sh -x $curPath/versions/$2/install.sh $1 || exit $?
 
 if [ "${action}" = "install" ] && [ -d $serverPath/openresty ];then
 	echo "${VERSION}" > $serverPath/openresty/version.pl

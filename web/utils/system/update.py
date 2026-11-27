@@ -14,6 +14,10 @@ import re
 import time
 import math
 import psutil
+import shutil
+import subprocess
+import tempfile
+import urllib.request
 import json
 
 import core.mw as mw
@@ -37,15 +41,10 @@ def versionDiff(now, new):
         return 'none'
 
 def getServerInfo():
-    import urllib.request
-    import ssl
-    upAddr = 'https://api.github.com/repos/midoks/mdserver-web/releases/latest'
+    upAddr = 'https://api.github.com/repos/huabanmao168-one/mdserver-web/releases/latest'
     try:
-        context = ssl._create_unverified_context()
-        req = urllib.request.urlopen(upAddr, context=context, timeout=3)
-        result = req.read().decode('utf-8')
-        version = json.loads(result)
-        return version
+        with urllib.request.urlopen(upAddr, timeout=5) as response:
+            return json.load(response)
     except Exception as e:
         print(str(e))
         return None
@@ -63,7 +62,7 @@ def updateServer(stype, version=''):
             return mw.returnData(False, '服务器数据或网络有问题!')
 
         version_now = config.APP_VERSION
-        new_ver = version_new_info['name']
+        new_ver = version_new_info['tag_name']
         if stype == 'check':
             diff = versionDiff(version_now, new_ver)
             if diff == 'new':
@@ -87,26 +86,22 @@ def updateServer(stype, version=''):
             if new_ver != version:
                 return mw.returnData(False, '更新失败,请重试!')
 
-            toPath = mw.getPanelDir() + '/temp'
-            if not os.path.exists(toPath):
-                mw.execShell('mkdir -p ' + toPath)
+            if not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2,3}(?:-[A-Za-z0-9.]+)?', version):
+                return mw.returnData(False, '版本标签格式无效!')
 
-            newUrl = "https://github.com/midoks/mdserver-web/archive/refs/tags/" + version + ".zip"
-
-            dist_mw = toPath + '/mw.zip'
-            if not os.path.exists(dist_mw):
-                mw.execShell('wget --no-check-certificate -O ' + dist_mw + ' ' + newUrl)
-
-            dist_to = toPath + "/mdserver-web-" + version
-            if not os.path.exists(dist_to):
-                subprocess.run(['unzip', '-o', dist_mw, '-d', toPath],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            cmd_cp = 'cp -rf ' + toPath + '/mdserver-web-' + version + '/* ' + mw.getServerDir() + '/mdserver-web'
-            mw.execShell(cmd_cp)
-
-            mw.execShell('rm -rf ' + toPath + '/mdserver-web-' + version)
-            mw.execShell('rm -rf ' + toPath + '/mw.zip')
+            panel_dir = mw.getPanelDir()
+            with tempfile.TemporaryDirectory(dir=panel_dir) as temp_dir:
+                archive = os.path.join(temp_dir, 'panel.zip')
+                url = 'https://github.com/huabanmao168-one/mdserver-web/archive/refs/tags/' + version + '.zip'
+                with urllib.request.urlopen(url, timeout=30) as response, open(archive, 'wb') as output:
+                    shutil.copyfileobj(response, output)
+                subprocess.run(['unzip', '-q', archive, '-d', temp_dir], check=True)
+                source = os.path.join(temp_dir, 'mdserver-web-' + version)
+                if not os.path.isfile(os.path.join(source, 'cli.sh')):
+                    return mw.returnData(False, '升级包缺少面板文件!')
+                for entry in os.scandir(source):
+                    if not entry.name.startswith('.'):
+                        subprocess.run(['cp', '-R', entry.path, panel_dir], check=True)
 
             update_env = '''
 #!/bin/bash
@@ -137,8 +132,7 @@ if [ -f /www/server/mdserver-web/version/r${NEW_P_VER}.txt ];then
 cd /www/server/mdserver-web && pip3 install -r /www/server/mdserver-web/version/r${NEW_P_VER}.txt -i $PIPSRC
 fi
 '''
-            subprocess.run(update_env.split(),
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(['bash', '-e', '-c', update_env], check=True)
             mw.restartMw()
             return mw.returnData(True, '安装更新成功!')
 

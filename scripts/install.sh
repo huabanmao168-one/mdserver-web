@@ -227,11 +227,14 @@ if [ $OSNAME != "macos" ];then
 	mkdir -p /www/backup/site
 
 	if [ ! -d /www/server/mdserver-web ];then
-		curl --insecure -sSLo /tmp/master.tar.gz ${HTTP_PREFIX}github.com/midoks/mdserver-web/archive/refs/heads/master.tar.gz
-		cd /tmp && tar -zxvf /tmp/master.tar.gz
-		mv -f /tmp/mdserver-web-master /www/server/mdserver-web
-		rm -rf /tmp/master.tar.gz
-		rm -rf /tmp/mdserver-web-master
+        download_dir=$(mktemp -d) || exit 1
+        if ! curl -fSL --retry 2 -o "$download_dir/panel.tar.gz" "${HTTP_PREFIX}github.com/huabanmao168-one/mdserver-web/archive/refs/heads/master.tar.gz" ||
+            ! tar -xzf "$download_dir/panel.tar.gz" -C "$download_dir" ||
+            ! mv "$download_dir/mdserver-web-master" /www/server/mdserver-web; then
+            rm -rf "$download_dir"
+            exit 1
+        fi
+        rm -rf "$download_dir"
 	fi
 
 	# install acme.sh
@@ -249,9 +252,12 @@ fi
 
 echo "use system version: ${OSNAME}"
 if [ "${OSNAME}" = "macos" ];then
-	curl --insecure -fsSL ${HTTP_PREFIX}raw.githubusercontent.com/midoks/mdserver-web/refs/heads/dev/scripts/install/macos.sh | bash
+    (
+        set -o pipefail
+        curl -fsSL "https://raw.githubusercontent.com/huabanmao168-one/mdserver-web/master/scripts/install/macos.sh" | bash
+    ) || exit 1
 else
-	cd /www/server/mdserver-web && bash scripts/install/${OSNAME}.sh
+	cd /www/server/mdserver-web && bash scripts/install/${OSNAME}.sh || exit $?
 fi
 
 if [ "${OSNAME}" = "macos" ];then

@@ -3,6 +3,7 @@ on: [push]
 
 jobs:
   repo-sync:
+    if: github.repository == 'midoks/mdserver-web'
     runs-on: ubuntu-latest
     steps:
       - name: Mirror the Github organization repos to Gitee.

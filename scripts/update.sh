@@ -25,6 +25,11 @@ if [ -f /www/server/mdserver-web/tools.py ];then
     exit 0
 fi
 
+if [ ! -f /www/server/mdserver-web/cli.sh ]; then
+    echo "找不到现有面板，请先运行安装脚本。"
+    exit 1
+fi
+
 # panel 没有启动后,更新也不启动
 PANEL_IS_RUN=no
 if [ -f /www/server/mdserver-web/logs/panel.pid ];then
@@ -218,11 +223,15 @@ fi
 
 echo "update mdserver-web code start"
 
-curl --insecure -sSLo /tmp/master.tar.gz ${HTTP_PREFIX}github.com/midoks/mdserver-web/archive/refs/heads/master.tar.gz
-cd /tmp && tar -zxvf /tmp/master.tar.gz
-$CP_CMD -rf /tmp/mdserver-web-master/* /www/server/mdserver-web
-rm -rf /tmp/master.tar.gz
-rm -rf /tmp/mdserver-web-master
+download_dir=$(mktemp -d) || exit 1
+if ! curl -fSL --retry 2 -o "$download_dir/panel.tar.gz" "${HTTP_PREFIX}github.com/huabanmao168-one/mdserver-web/archive/refs/heads/master.tar.gz" ||
+    ! tar -xzf "$download_dir/panel.tar.gz" -C "$download_dir" ||
+    [ ! -f "$download_dir/mdserver-web-master/cli.sh" ] ||
+    ! "$CP_CMD" -rf "$download_dir/mdserver-web-master/"* /www/server/mdserver-web; then
+    rm -rf "$download_dir"
+    exit 1
+fi
+rm -rf "$download_dir"
 
 echo "update mdserver-web code end"
 

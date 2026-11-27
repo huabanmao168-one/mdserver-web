@@ -112,85 +112,21 @@ docker run -itd --name mw-server --privileged=true -p 7200:7200 -p 80:80 -p 443:
 
 - 常规优化。
 
-### 增加在线更新支持。
+### 安装与升级
 
-- 初始安装
+此分支由 @huabanmao168-one 维护。安装和命令行升级使用本仓库的 master 分支，面板在线升级读取本仓库的 GitHub Releases。
 
-```
-bash <(curl --insecure -fsSL https://cdn.jsdelivr.net/gh/midoks/mdserver-web@latest/scripts/install.sh)
-```
+安装
 
-- 直接更新
+	tmp=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/huabanmao168-one/mdserver-web/master/scripts/install.sh -o "$tmp" && bash "$tmp"; rm -f "$tmp"
 
-```
-bash <(curl --insecure -fsSL https://cdn.jsdelivr.net/gh/midoks/mdserver-web@latest/scripts/update.sh)
-```
+升级现有面板或从上游迁移
 
-- 卸载脚本
+	tmp=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/huabanmao168-one/mdserver-web/master/scripts/update.sh -o "$tmp" && bash "$tmp"; rm -f "$tmp"
 
-```
-wget --no-check-certificate -O uninstall.sh https://cdn.jsdelivr.net/gh/midoks/mdserver-web@latest/scripts/uninstall.sh && bash uninstall.sh
-```
+卸载
 
-### 备用地址
-
-- 初始安装
-
-```
-
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/install.sh)
-bash <(curl --insecure -fsSL https://code.midoks.icu/midoks/mdserver-web/raw/branch/master/scripts/install.sh)
-```
-
-- 直接更新
-
-```
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/master/scripts/update.sh)
-```
-
-- 卸载脚本
-
-```
-wget --no-check-certificate -O uninstall.sh https://raw.githubusercontent.com/midoks/mdserver-web/master/scripts/uninstall.sh && bash uninstall.sh
-```
-
-
-### 通用软件安装[命令行安装]
-
-- 需已经安装mdserver-web
-
-```
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/quick/app.sh)
-```
-
-
-### DEV使用
-
-```
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/install.sh)
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update.sh)
-
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/install_dev.sh)
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/update_dev.sh)
-
-wget --no-check-certificate -O install.sh https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/install.sh && bash install.sh
-
-wget --no-check-certificate -O uninstall.sh https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/uninstall.sh && bash uninstall.sh
-
-bash <(curl --insecure -fsSL https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/quick/debug.sh)
-
-bash <(curl --insecure -fsSL https://code.midoks.icu/midoks/mdserver-web/raw/branch/dev/scripts/install.sh)
-bash <(curl --insecure -fsSL https://code.midoks.icu/midoks/mdserver-web/raw/branch/dev/scripts/update.sh)
-
-bash <(curl --insecure -fsSL https://code.midoks.icu/midoks/mdserver-web/raw/branch/dev/scripts/install_dev.sh)
-bash <(curl --insecure -fsSL https://code.midoks.icu/midoks/mdserver-web/raw/branch/dev/scripts/update_dev.sh)
-```
-
-### 旧版安装/更新
-```
-curl --insecure -fsSL  https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/old/install.sh | bash
-curl --insecure -fsSL  https://raw.githubusercontent.com/midoks/mdserver-web/dev/scripts/old/update.sh | bash
-```
+	tmp=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/huabanmao168-one/mdserver-web/master/scripts/uninstall.sh -o "$tmp" && bash "$tmp"; rm -f "$tmp"
 
 ### 偶然问题
 - 在安装/更新时，突然出现python插件pip,psutil,可尝试如下解决方案
