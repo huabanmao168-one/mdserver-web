@@ -1130,7 +1130,8 @@ def setDbBackup():
     # scDir = mw.getPanelDir() + '/scripts/backup.py'
     head = "cd "+mw.getPanelDir()
     cmd = head +' && . bin/activate &&  python3 scripts/backup.py database ' + mw.quote(args['name']) + ' 3'
-    os.system(cmd)
+    if os.system(cmd) != 0:
+        return mw.returnJson(False, 'MySQL 备份失败，请查看任务日志。')
     return mw.returnJson(True, 'ok')
 
 
