@@ -22,13 +22,19 @@ if [ "$version" -lt "70" ];then
 	exit 1
 fi 
 
-LIB_PATH_NAME=lib/php
-if [ -d $serverPath/php/${version}/lib64 ];then
-	LIB_PATH_NAME=lib64
+php_bin="$serverPath/php/$version/bin"
+php_ini="$serverPath/php/$version/etc/php.ini"
+source_name="$LIBNAME-$LIBV"
+source_url="https://pecl.php.net/get/$source_name.tgz"
+if [ "$version" = "86" ]; then
+    # The 3.2.16 release uses a header removed in PHP 8.6.
+    source_commit=fe33bf9ec03e97e2290a090abc72326e6910f5c1
+    source_name="$LIBNAME-$source_commit"
+    source_url="https://codeload.github.com/igbinary/igbinary/tar.gz/$source_commit"
+    source_sha256=f6f7a0633e04714eb38b8ec4e96b7a1eccf04d78eb100129c536b9c62b063a08
 fi
-
-NON_ZTS_FILENAME=`ls $serverPath/php/${version}/${LIB_PATH_NAME}/extensions | grep no-debug-non-zts`
-extFile=$serverPath/php/${version}/${LIB_PATH_NAME}/extensions/${NON_ZTS_FILENAME}/${LIBNAME}.so
+extension_dir=$("$php_bin/php-config" --extension-dir) || exit 1
+extFile="$extension_dir/$LIBNAME.so"
 
 sysName=`uname`
 if [ "$sysName" = "Darwin" ];then
@@ -39,41 +45,43 @@ fi
 
 Install_lib()
 {
-	
-	isInstall=`cat $serverPath/php/$version/etc/php.ini|grep "${LIBNAME}.so"`
-	if [ "${isInstall}" != "" ];then
-		echo "php-$version 已安装${LIBNAME},请选择其它版本!"
-		return
-	fi
-	
-	if [ ! -f "$extFile" ];then
+    if ! [ -f "$php_ini" ]; then
+        echo "找不到 PHP $version 的配置文件：$php_ini"
+        return 1
+    fi
+    if [ ! -f "$extFile" ]; then
+        php_lib="$sourcePath/php_lib"
+        mkdir -p "$php_lib" && cd "$php_lib" || return 1
+        archive="$source_name.tgz"
+        if [ ! -s "$archive" ]; then
+            curl -fL --retry 2 -o "$archive.tmp" "$source_url" || return 1
+            mv "$archive.tmp" "$archive" || return 1
+        fi
+        if [ "$version" = "86" ]; then
+            hash_command=sha256sum
+            if ! command -v sha256sum >/dev/null 2>&1; then
+                hash_command="shasum -a 256"
+            fi
+            if ! printf '%s  %s\n' "$source_sha256" "$archive" | $hash_command -c -; then
+                rm -f "$archive"
+                return 1
+            fi
+        fi
+        tar -xzf "$archive" && cd "$source_name" || return 1
+        "$php_bin/phpize" || return 1
+        ./configure --with-php-config="$php_bin/php-config" || return 1
+        make clean && make && make install || return 1
+        cd "$php_lib" && rm -rf "$source_name"
+    fi
 
-		php_lib=$sourcePath/php_lib
-		mkdir -p $php_lib
-		if [ ! -d $php_lib/${LIBNAME}-${LIBV} ];then
-			if [ ! -f $php_lib/${LIBNAME}-${LIBV}.tgz ];then
-				wget --no-check-certificate -O $php_lib/${LIBNAME}-${LIBV}.tgz http://pecl.php.net/get/${LIBNAME}-${LIBV}.tgz
-			fi
-			cd $php_lib && tar xvf ${LIBNAME}-${LIBV}.tgz
-		fi
-		cd $php_lib/${LIBNAME}-${LIBV}
+    if ! "$php_bin/php" -n -d "extension=$extFile" -r 'exit(extension_loaded("igbinary") ? 0 : 1);'; then
+        echo "PHP $version 无法加载 $extFile"
+        return 1
+    fi
+    if ! grep -Eq '^[[:space:]]*extension[[:space:]]*=[[:space:]]*"?igbinary[.]so"?([[:space:]]|;|$)' "$php_ini"; then
+        printf '\n[igbinary]\nextension=igbinary.so\n' >> "$php_ini" || return 1
+    fi
 
-		$serverPath/php/$version/bin/phpize
-		./configure --with-php-config=$serverPath/php/$version/bin/php-config
-		make clean && make && make install && make clean
-		
-		cd $php_lib && rm -rf $php_lib/${LIBNAME}-${LIBV}
-	fi
-	
-	if [ ! -f "$extFile" ];then
-		echo "ERROR!"
-		return;
-	fi
-	
-	echo  "" >> $serverPath/php/$version/etc/php.ini
-	echo  "[${LIBNAME}]" >> $serverPath/php/$version/etc/php.ini
-	echo  "extension=${LIBNAME}.so" >> $serverPath/php/$version/etc/php.ini
-	
 	cd  ${curPath} && bash ${rootPath}/plugins/php/versions/lib.sh $version restart
 	echo '==========================================================='
 	echo 'successful!'
