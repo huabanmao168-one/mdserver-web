@@ -26,7 +26,7 @@ import core.db as db
 class backupTools:
 
     def backupSite(self, name, count, echo=None):
-        exclude_dir_cmd = self.makeExcludeDirCmd(echo)
+        exclude_args = self.makeExcludeDirArgs(echo)
 
         sql = db.Sql()
         path = sql.table('sites').where('name=?', (name,)).getField('path')
@@ -37,7 +37,7 @@ class backupTools:
             print("★[" + endDate + "] " + log)
             print(
                 "----------------------------------------------------------------------------")
-            return
+            return False
 
         backup_path = mw.getBackupDir() + '/site'
         if not os.path.exists(backup_path):
@@ -46,21 +46,11 @@ class backupTools:
         filename = backup_path + "/web_" + name + "_" + \
             time.strftime('%Y%m%d_%H%M%S', time.localtime()) + '.tar.gz'
 
-        cmd = "cd " + os.path.dirname(path) + " && tar zcvf '" + \
-            filename + "' " + exclude_dir_cmd + " '" + os.path.basename(path) + "' > /dev/null"
-
-        # print(cmd)
-        subprocess.run(cmd.split(),
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if not self.createArchive(path, filename, exclude_args):
+            return False
 
         endDate = time.strftime('%Y/%m/%d %X', time.localtime())
         # print(filename)
-        if not os.path.exists(filename):
-            log = "网站[" + name + "]备份失败!"
-            print("★[" + endDate + "] " + log)
-            print("----------------------------------------------------------------------------")
-            return
-
         outTime = time.time() - startTime
         pid = sql.table('sites').where('name=?', (name,)).getField('id')
         sql.table('backup').add('type,name,pid,filename,add_time,size', ('0', os.path.basename(
@@ -85,6 +75,7 @@ class backupTools:
                 print("|---已清理过期备份文件：" + backup['filename'])
                 if num < 1:
                     break
+        return True
 
     def getConf(self, mtype='mysql'):
         path = mw.getServerDir() + '/' + mtype + '/etc/my.cnf'
@@ -227,8 +218,11 @@ class backupTools:
 
     def backupSiteAll(self, save):
         sites = mw.M('sites').field('name').select()
+        success = True
         for site in sites:
-            self.backupSite(site['name'], save)
+            if not self.backupSite(site['name'], save):
+                success = False
+        return success
 
     def backupDatabaseAll(self, save):
         db_path = mw.getServerDir() + '/mysql'
@@ -249,7 +243,7 @@ class backupTools:
                 l.append(ff.name)
         return l
 
-    def makeExcludeDirCmd(self,echo):
+    def makeExcludeDirArgs(self, echo):
         exclude_dirs = []
         crontab_list = mw.M('crontab').where('echo=?', (echo,)).field('attr').find()
         if crontab_list:
@@ -260,14 +254,24 @@ class backupTools:
                     exclude_dirs.append(ed.strip())
 
 
-        cmd = ""
-        for v in exclude_dirs:
-            cmd += " --exclude='"+v+"'"
-        return cmd
+        return ['--exclude=' + directory for directory in exclude_dirs if directory]
+
+    def createArchive(self, path, filename, exclude_args):
+        path = os.path.abspath(path)
+        try:
+            with tempfile.TemporaryDirectory(dir=os.path.dirname(filename)) as work_dir:
+                archive = os.path.join(work_dir, 'backup.tar.gz')
+                subprocess.run(['tar', '-czf', archive, '-C', os.path.dirname(path),
+                                *exclude_args, '--', os.path.basename(path)], check=True)
+                os.replace(archive, filename)
+        except (OSError, subprocess.CalledProcessError) as error:
+            print('归档失败：' + str(error), file=sys.stderr)
+            return False
+        return True
 
     def backupPath(self, path, count, echo=None):
 
-        exclude_dir_cmd = self.makeExcludeDirCmd(echo)
+        exclude_args = self.makeExcludeDirArgs(echo)
         # print(exclude_dir_cmd)
         mw.echoStart('备份')
 
@@ -276,7 +280,7 @@ class backupTools:
             subprocess.run(["mkdir", "-p", backup_path],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        dirname = os.path.basename(path)
+        dirname = os.path.basename(os.path.normpath(path))
         fname = 'path_{}_{}.tar.gz'.format(
             dirname, mw.formatDate("%Y%m%d_%H%M%S"))
         dfile = os.path.join(backup_path, fname)
@@ -284,11 +288,8 @@ class backupTools:
         p_size = mw.getPathSize(path)
         stime = time.time()
 
-        cmd = "cd " + os.path.dirname(path) + " && tar zcvf '" + dfile + "' " + exclude_dir_cmd + " '" + dirname + "' 2>{err_log} 1> /dev/null".format(
-            err_log='/tmp/backup_err.log')
-        # print(cmd)
-        subprocess.run(cmd.split(),
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if not self.createArchive(path, dfile, exclude_args):
+            return False
 
         tar_size = os.path.getsize(dfile)
 
@@ -314,19 +315,20 @@ class backupTools:
                     break
 
         mw.echoEnd('备份')
+        return True
 
 if __name__ == "__main__":
     backup = backupTools()
     stype = sys.argv[1]
     if stype == 'site':
         if sys.argv[2] == 'ALL':
-            backup.backupSiteAll(sys.argv[3])
+            sys.exit(0 if backup.backupSiteAll(sys.argv[3]) else 1)
         else:
-            backup.backupSite(sys.argv[2], sys.argv[3], sys.argv[4])
+            sys.exit(0 if backup.backupSite(sys.argv[2], sys.argv[3], sys.argv[4]) else 1)
     elif stype == 'database':
         if sys.argv[2].startswith('ALL@'):
             sys.exit(0 if backup.backupDatabaseAll(sys.argv[3]) else 1)
         else:
             sys.exit(0 if backup.backupDatabase(sys.argv[2], sys.argv[3]) else 1)
     elif stype == 'path':
-        backup.backupPath(sys.argv[2], sys.argv[3], sys.argv[4])
+        sys.exit(0 if backup.backupPath(sys.argv[2], sys.argv[3], sys.argv[4]) else 1)

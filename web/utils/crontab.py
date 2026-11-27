@@ -513,6 +513,15 @@ fi''' % (mw.getPanelDir(),)
                 wheres['path'] = head_scripts + " && python3 " + cfile + " path " + param['sname'] + " " + str(param['save']) + " " + str(param['echo'])
                 wheres['site'] = head_scripts + " && python3 " + cfile + " site " + param['sname'] + " " + str(param['save']) + " " + str(param['echo'])
                 wheres['database'] = head_scripts + " && python3 " + cfile + " " + param['sname'] + "@" + param["sbody"] + " " + str(param['save'])
+                if os.path.basename(param['backup_to'].rstrip('/')) == 'backup_ftp':
+                    for kind in ('path', 'site', 'database'):
+                        target = param['sname']
+                        if kind == 'database':
+                            target += '@' + param['sbody']
+                        arguments = [cfile, kind, target, str(param['save'])]
+                        if kind in ('path', 'site'):
+                            arguments.append(str(param['echo']))
+                        wheres[kind] = head_scripts + ' && python3 ' + ' '.join(map(mw.quote, arguments))
 
             if param["stype"].find('database_') > -1:
                 plugin_name = param["stype"].replace('database_', '')
@@ -521,13 +530,19 @@ fi''' % (mw.getPanelDir(),)
 
             shell = wheres[stype]
             shell += '''
+MW_SCRIPT_STATUS=$?
 echo "----------------------------------------------------------------------------"
 endDate=`date +"%Y-%m-%d %H:%M:%S"`
 END_MW_SHELL_TIME=`date +"%s"`
 ((SHELL_COS_TIME=($END_MW_SHELL_TIME-$START_MW_SHELL_TIME)))
 MW_ToSeconds $SHELL_COS_TIME
-echo "★[$endDate] Successful | Script Run [$SCRIPT_RUN_TIME] "
+if [ "$MW_SCRIPT_STATUS" -eq 0 ];then
+    echo "★[$endDate] Successful | Script Run [$SCRIPT_RUN_TIME] "
+else
+    echo "★[$endDate] Failed (exit $MW_SCRIPT_STATUS) | Script Run [$SCRIPT_RUN_TIME] "
+fi
 echo "----------------------------------------------------------------------------"
+exit "$MW_SCRIPT_STATUS"
 '''
         cron_path = mw.getServerDir() + '/cron'
         if not os.path.exists(cron_path):
