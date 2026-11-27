@@ -33,7 +33,12 @@ fi
 
 Install_lib()
 {
-	isInstall=`cat $serverPath/php/$version/etc/php.ini|grep "${LIBNAME}.so"`
+	if [ "$version" -ge 85 ];then
+		check="^opcache.enable=1$"
+	else
+		check="zend_extension=opcache[.]so"
+	fi
+	isInstall=`cat $serverPath/php/$version/etc/php.ini|grep -E "$check"`
 	if [ "${isInstall}" != "" ];then
 		echo "php-$version 已安装${LIBNAME},请选择其它版本!"
 		return
@@ -50,7 +55,7 @@ Install_lib()
 	echo "" >> $serverPath/php/$version/etc/php.ini
 	echo "[opcache]" >> $serverPath/php/$version/etc/php.ini
 
-	if [ "$version" = "85" ];then
+	if [ "$version" -ge 85 ];then
 		echo "Force enable opcache in PHP 8.5+"
 	else
 		echo "zend_extension=${LIBNAME}.so" >> $serverPath/php/$version/etc/php.ini

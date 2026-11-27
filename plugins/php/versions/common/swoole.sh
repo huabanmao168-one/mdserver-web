@@ -35,7 +35,7 @@ elif [ "$version" = "83" ];then
 	LIBV=6.2.0
 elif [ "$version" = "84" ];then
 	LIBV=6.2.0
-elif [ "$version" = "85" ];then
+elif [ "$version" = "85" ] || [ "$version" = "86" ];then
 	LIBV=6.2.0
 else
 	echo 'other?'

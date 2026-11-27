@@ -925,7 +925,9 @@ def libConfCommon(version):
                 lib['task'] = task['status']
                 lib['phpversions'] = []
                 lib['phpversions'].append(tmp1[1])
-        if phpini.find(lib['check']) == -1:
+        if lib['name'] == 'opcache' and int(version) >= 85:
+            lib['status'] = re.search(r'^\s*opcache\.enable\s*=\s*1\s*$', phpini, re.M) is not None
+        elif phpini.find(lib['check']) == -1:
             lib['status'] = False
         else:
             lib['status'] = True
