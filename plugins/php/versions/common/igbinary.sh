@@ -54,7 +54,7 @@ Install_lib()
         mkdir -p "$php_lib" && cd "$php_lib" || return 1
         archive="$source_name.tgz"
         if [ ! -s "$archive" ]; then
-            curl -fL --retry 2 -o "$archive.tmp" "$source_url" || return 1
+            curl -fL --retry 3 --retry-all-errors -o "$archive.tmp" "$source_url" || return 1
             mv "$archive.tmp" "$archive" || return 1
         fi
         if [ "$version" = "86" ]; then

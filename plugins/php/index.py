@@ -927,6 +927,8 @@ def libConfCommon(version):
                 lib['phpversions'].append(tmp1[1])
         if lib['name'] == 'opcache' and int(version) >= 85:
             lib['status'] = re.search(r'^\s*opcache\.enable\s*=\s*1\s*$', phpini, re.M) is not None
+        elif lib['name'] == 'pgsql':
+            lib['status'] = re.search(r'^\s*extension\s*=\s*"?pgsql\.so"?(?=\s|;|$)', phpini, re.M) is not None
         elif phpini.find(lib['check']) == -1:
             lib['status'] = False
         else:
@@ -953,6 +955,11 @@ def installLib(version):
         return data[1]
 
     name = args['name']
+    catalog_path = getPluginDir() + '/versions/phplib.conf'
+    catalog = json.loads(mw.readFile(catalog_path))
+    for lib in catalog:
+        if name.lower() == lib['name'].lower() and version in lib.get('unsupported_versions', []):
+            return mw.returnJson(False, '该扩展暂不支持当前 PHP 版本!')
     cmd = "cd " + mw.quote(getPluginDir() + "/versions") + " && /bin/bash  common.sh " + mw.quote(version) + ' install ' + mw.quote(name)
     install_name = '安装[' + name + '-' + version + ']'
     import thisdb

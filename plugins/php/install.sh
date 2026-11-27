@@ -77,21 +77,28 @@ if [ "${action}" = "install" ] && [ -d ${serverPath}/php/${type} ];then
 	# cd /www/server/mdserver-web/plugins/php/versions/common  && bash fileinfo.sh install 81
 	# cd /www/server/mdserver-web/plugins/php/versions/common  && bash pgsql.sh install 84
 	# cd /www/server/mdserver-web/plugins/php/versions/common  && bash pdo_pgsql.sh install 84
-	cd ${rootPath}/plugins/php/versions/common && bash curl.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash gd.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash readline.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash iconv.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash exif.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash intl.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash mcrypt.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash openssl.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash bcmath.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash gettext.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash redis.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash memcached.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash pcntl.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash zip.sh install ${type}
-	cd ${rootPath}/plugins/php/versions/common && bash zlib.sh install ${type}
+	if [ "$type" = "86" ]; then
+		cd "$rootPath/plugins/php/versions" || exit 1
+		for module in curl gd readline iconv exif intl openssl bcmath gettext redis memcached pcntl zip zlib; do
+			bash common.sh "$type" install "$module" || echo "PHP $type 扩展 $module 安装失败" >&2
+		done
+	else
+		cd ${rootPath}/plugins/php/versions/common && bash curl.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash gd.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash readline.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash iconv.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash exif.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash intl.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash mcrypt.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash openssl.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash bcmath.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash gettext.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash redis.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash memcached.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash pcntl.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash zip.sh install ${type}
+		cd ${rootPath}/plugins/php/versions/common && bash zlib.sh install ${type}
+	fi
 
 	echo "install PHP${type} extend end"
 

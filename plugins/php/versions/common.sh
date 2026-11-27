@@ -18,6 +18,19 @@ extName=$3
 # echo $rootPath
 # echo $serverPath
 
+if [ "$version" = "86" ]; then
+    php_bin="$serverPath/php/86/bin"
+    if [ "$action" = "install" ]; then
+        extension_dir=$("$php_bin/php-config" --extension-dir) || exit 1
+        mkdir -p "$extension_dir" || exit 1
+    fi
+    case "$extName" in
+        apcu|brotli|event|imagemagick|memcached|mongodb|pgsql|sodium|xhprof|yac|yaml)
+            exec bash "$curPath/86/pecl.sh" "$action" "$extName"
+            ;;
+    esac
+fi
+
 FILE=${curPath}/${version}/${extName}.sh
 FILE_COMMON=${curPath}/common/${extName}.sh
 

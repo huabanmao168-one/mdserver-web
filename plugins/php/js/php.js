@@ -777,7 +777,10 @@ function phpLibConfig(version){
                 continue;
             }
 
-            if (libs[i]['task'] == '-1' && libs[i].phpversions.indexOf(version) != -1) {
+            var supported = (libs[i].unsupported_versions || []).indexOf(version) === -1;
+            if (!supported && !libs[i].status) {
+                opt = '<span class="c7">暂不支持</span>';
+            } else if (libs[i]['task'] == '-1' && libs[i].phpversions.indexOf(version) != -1) {
                 opt = '<a style="color:green;" href="javascript:messageBox();">安装</a>'
             } else if (libs[i]['task'] == '0' && libs[i].phpversions.indexOf(version) != -1) {
                 opt = '<a style="color:#C0C0C0;" href="javascript:messageBox();">等待安装...</a>'
